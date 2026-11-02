@@ -181,6 +181,25 @@ class AttemptService
         return $query->whereHas('options', null, '>=', 2)->whereHas('correctOption');
     }
 
+    /**
+     * Question counts behind the booklet's bottom buttons.
+     *
+     * @return array{ministerial: int, teacher: int, quiz: array<string, int>}
+     */
+    public function bookletStats(Booklet $booklet): array
+    {
+        $quiz = [];
+        foreach (Difficulty::cases() as $difficulty) {
+            $quiz[$difficulty->value] = $this->questionPool(AttemptMode::Quiz, $booklet, null, $difficulty)->count();
+        }
+
+        return [
+            'ministerial' => $this->questionPool(AttemptMode::Ministerial, $booklet, null)->count(),
+            'teacher' => $this->questionPool(AttemptMode::Teacher, $booklet, null)->count(),
+            'quiz' => $quiz,
+        ];
+    }
+
     private function ensureInProgress(Attempt $attempt): void
     {
         if ($attempt->isSubmitted()) {

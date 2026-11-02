@@ -24,7 +24,13 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->trustProxies(at: '*');
 
         // API guests get a JSON 401, never a redirect.
-        $middleware->redirectGuestsTo(fn (Request $request) => $request->is('api/*') ? null : '/admin/login');
+        $middleware->redirectGuestsTo(fn (Request $request) => match (true) {
+            $request->is('api/*') => null,
+            $request->is('admin', 'admin/*') => '/admin/login',
+            default => route('student.login'),
+        });
+        // A signed-in student visiting /login goes to the home page.
+        $middleware->redirectUsersTo(fn (Request $request) => $request->is('admin', 'admin/*') ? '/admin' : route('student.home'));
     })
     ->withExceptions(function (Exceptions $exceptions) {
         // The student app always gets JSON.

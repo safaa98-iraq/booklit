@@ -3,7 +3,8 @@
 An Arabic (RTL) educational platform. Admins and content editors publish structured study booklets (ملازم) with linked multiple-choice questions, and students study and solve them in the Flutter app.
 
 - **Backend:** Laravel REST API, database schema, and the Filament admin/editor panel (`/admin`).
-- **Student app:** Flutter (Android, iOS and Web) in [`student_app/`](student_app). The web build is served by Laravel at `/app/`, and `/` redirects there.
+- **Student web site:** server-rendered (Blade) at `/`: Arabic RTL, no build step, fonts and KaTeX self-hosted.
+- **Student mobile app:** Flutter source in [`student_app/`](student_app) — paused until the web site is approved.
 
 | Layer | Tech |
 |---|---|
@@ -28,7 +29,7 @@ php artisan serve
 ```
 
 - Panel: `http://localhost:8000/admin`. Demo logins are `admin@example.com` / `password` and `editor@example.com` / `password`.
-- Student app: `http://localhost:8000/app/`.
+- Student site: `http://localhost:8000/`.
 
 ### Demo data (College of Dentistry)
 
@@ -155,7 +156,16 @@ Correct answers are never included while an attempt is `in_progress`. Phone numb
 - **التقارير:** درجات الطلاب (score per attempt) · الأسئلة الأصعب (per-question error rate) · أداء الطلاب حسب الموضوع (per-topic accuracy per student).
 - **الإعدادات:** المحررون · إعدادات التطبيق (Telegram link, locked message, configurable 4th button).
 
-## Student app (Flutter)
+## Student web site
+
+Routes in `routes/web.php`, controllers in `app/Http/Controllers/Student`, views in `resources/views/student`, styles in `public/css/student.css`.
+
+- Separate `student` auth guard (session), so a student session never mixes with the admin panel.
+- **One device:** each browser gets a permanent `booklit_device` cookie; signing in binds it as the account's device (same rules as the API). If the admin resets the device, the browser is signed out.
+- Pages: login/register → home (stage chips, two-column subject grid, lock + Telegram dialog) → reader (topics, highlighted passage via `?hl=<block>:<start>:<end>`) with the 4 bottom buttons → solve (answers changeable, autosaved) → results with explanations and **اعرض في الملزمة** → account (subscriptions, attempt history).
+- Protection on the web: name+phone watermark on every page, text selection/copy/right-click/print disabled on content pages.
+
+## Student app (Flutter) — paused
 
 `student_app/` — one codebase for Android, iOS and Web, Arabic RTL with the bundled Cairo font.
 

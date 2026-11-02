@@ -22,13 +22,7 @@ class AuthService
     public function register(array $data, array $device): array
     {
         return DB::transaction(function () use ($data, $device) {
-            $user = User::create([
-                'name' => $data['name'],
-                'phone' => Phone::normalize($data['phone']),
-                'password' => $data['password'],
-                'role' => UserRole::Student,
-                'is_active' => true,
-            ]);
+            $user = $this->createStudent($data);
 
             return $this->issueToken($user, $device);
         });
@@ -40,6 +34,16 @@ class AuthService
      * @throws ValidationException|DeviceMismatchException
      */
     public function login(string $phone, string $password, array $device): array
+    {
+        return $this->issueToken($this->verifyCredentials($phone, $password), $device);
+    }
+
+    /**
+     * Shared by the API and the web site: checks phone/password and account status.
+     *
+     * @throws ValidationException
+     */
+    public function verifyCredentials(string $phone, string $password): User
     {
         $user = User::students()->where('phone', Phone::normalize($phone))->first();
 
@@ -55,7 +59,19 @@ class AuthService
             ]);
         }
 
-        return $this->issueToken($user, $device);
+        return $user;
+    }
+
+    /** Create a student account (web or API). */
+    public function createStudent(array $data): User
+    {
+        return User::create([
+            'name' => $data['name'],
+            'phone' => Phone::normalize($data['phone']),
+            'password' => $data['password'],
+            'role' => UserRole::Student,
+            'is_active' => true,
+        ]);
     }
 
     public function logout(User $user): void

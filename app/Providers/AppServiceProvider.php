@@ -9,6 +9,7 @@ use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\RateLimiter;
+use Illuminate\Support\Facades\View;
 use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
@@ -28,6 +29,9 @@ class AppServiceProvider extends ServiceProvider
             Limit::perMinute(10)->by('ip:'.$request->ip()),
             Limit::perMinute(5)->by('phone:'.$request->input('phone')),
         ]);
+
+        // The signed-in student is available to every student page.
+        View::composer('student.*', fn ($view) => $view->with('student', auth('student')->user()));
 
         RateLimiter::for('attempts', fn (Request $request) => Limit::perMinute(30)->by((string) $request->user()?->getKey()));
     }

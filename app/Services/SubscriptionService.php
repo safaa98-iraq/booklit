@@ -20,17 +20,13 @@ class SubscriptionService
     private const MEMO_TTL = 5;
 
     /**
-     * Short-lived memo per User instance, so listing N subjects costs one query
-     * without ever serving stale grants to a long-lived process.
+     * Short-lived memo per user ID, so listing N subjects costs one query
+     * without serving stale grants to a long-lived process. Cleared on
+     * activate/revoke.
      *
-     * @var \WeakMap<User, array{at: int, grants: array{stages: list<int>, subjects: list<int>}}>
+     * @var array<int, array{at: int, grants: array{stages: list<int>, subjects: list<int>}}>
      */
-    private \WeakMap $memo;
-
-    public function __construct()
-    {
-        $this->memo = new \WeakMap;
-    }
+    private array $memo = [];
 
     public function canAccessSubject(User $user, Subject $subject): bool
     {
@@ -69,7 +65,7 @@ class SubscriptionService
     public function activeGrants(User $user): array
     {
         $now = now()->getTimestamp();
-        $cached = $this->memo[$user] ?? null;
+        $cached = $this->memo[$user->getKey()] ?? null;
 
         if ($cached && $now - $cached['at'] < self::MEMO_TTL) {
             return $cached['grants'];
@@ -82,7 +78,7 @@ class SubscriptionService
             'subjects' => $subs->pluck('subject_id')->filter()->map(fn ($id) => (int) $id)->unique()->values()->all(),
         ];
 
-        $this->memo[$user] = ['at' => $now, 'grants' => $grants];
+        $this->memo[$user->getKey()] = ['at' => $now, 'grants' => $grants];
 
         return $grants;
     }
@@ -145,7 +141,7 @@ class SubscriptionService
             return $rows;
         });
 
-        unset($this->memo[$student]);
+        unset($this->memo[$student->getKey()]);
 
         return $created;
     }
@@ -153,6 +149,6 @@ class SubscriptionService
     public function revoke(Subscription $subscription): void
     {
         $subscription->update(['revoked_at' => now()]);
-        $this->memo = new \WeakMap;
+        unset($this->memo[$subscription->user_id]);
     }
 }

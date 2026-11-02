@@ -4,14 +4,21 @@ namespace App\Exceptions;
 
 use App\Services\SettingsService;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 use RuntimeException;
 
 /** Thrown when a student opens ministerial content without an active subscription. */
 class SubjectLockedException extends RuntimeException
 {
-    public function render(): JsonResponse
+    public function render(Request $request): JsonResponse|RedirectResponse
     {
         $settings = app(SettingsService::class);
+
+        // Web site: back to the home page, which shows the "locked" dialog.
+        if (! $request->expectsJson() && ! $request->is('api/*')) {
+            return redirect()->route('student.home')->with('locked', $settings->get('locked_subject_message'));
+        }
 
         return response()->json([
             'message' => $settings->get('locked_subject_message'),
