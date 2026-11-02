@@ -2,8 +2,8 @@
 
 An Arabic (RTL) educational platform. Admins and content editors publish structured study booklets (ملازم) with linked multiple-choice questions, and students study and solve them in the Flutter app.
 
-**Phase 1 (this repo):** Laravel REST API, database schema, and the Filament admin/editor panel.
-**Phase 2:** Flutter student app (Android, iOS and Web). Waiting on review of Phase 1.
+- **Backend:** Laravel REST API, database schema, and the Filament admin/editor panel (`/admin`).
+- **Student app:** Flutter (Android, iOS and Web) in [`student_app/`](student_app). The web build is served by Laravel at `/app/`, and `/` redirects there.
 
 | Layer | Tech |
 |---|---|
@@ -28,7 +28,26 @@ php artisan serve
 ```
 
 - Panel: `http://localhost:8000/admin`. Demo logins are `admin@example.com` / `password` and `editor@example.com` / `password`.
-- Demo student (API): phone `07700000000`, password `password`.
+- Student app: `http://localhost:8000/app/`.
+
+### Demo data (College of Dentistry)
+
+`DemoContentSeeder` loads 5 stages × 4 subjects, one booklet per subject (2 topics each), 360 questions (ministerial + teacher, 3 difficulties, plus a true/false question bank) with passage anchors, and 8 students. On Render, set `SEED_DEMO_CONTENT=true` to load it on deploy (it skips itself once loaded).
+
+Stage 5 and two stage-4 subjects (جراحة الفم، أمراض اللثة) are paid/locked. All demo students use the password `12345678`:
+
+| Student | Phone | Access |
+|---|---|---|
+| علي حسين كاظم | 07701234501 | Stage 5 subscription |
+| زينب محمد جاسم | 07701234502 | Stage 5 subscription |
+| حسن عبد الله ناصر | 07801234503 | جراحة الفم only |
+| مريم أحمد عباس | 07801234504 | Stage 5 subscription — **expired** |
+| مصطفى كريم حميد | 07501234505 | Free subjects only |
+| فاطمة علي رضا | 07501234506 | Free subjects only |
+| يوسف سعد مهدي | 07901234507 | أمراض اللثة only |
+| نور الهدى صادق | 07901234508 | Free subjects only |
+
+The first six already have a demo device bound, so signing in with them from a new device shows the "account bound to another device" message until an admin resets the device. The last two can sign in straight away.
 - Tests: `php artisan test` (runs on in-memory SQLite).
 
 ### S3-compatible media
@@ -136,8 +155,22 @@ Correct answers are never included while an attempt is `in_progress`. Phone numb
 - **التقارير:** درجات الطلاب (score per attempt) · الأسئلة الأصعب (per-question error rate) · أداء الطلاب حسب الموضوع (per-topic accuracy per student).
 - **الإعدادات:** المحررون · إعدادات التطبيق (Telegram link, locked message, configurable 4th button).
 
-## Phase 2 notes for the Flutter app
+## Student app (Flutter)
 
-- Screenshot protection is client-side: `FLAG_SECURE` on Android, and capture detection plus blur on iOS. On Web, draw the dynamic watermark from `GET /me` → `watermark`.
-- Generate `device_id` once per install (and once per browser, kept in local storage on Web) and send it as `X-Device-Id`.
-- Show the bottom buttons from `booklet.actions`. The 4th button is driven by `actions.fourth_button` (`enabled`, `label`, `icon`, `action: none|url|route`, `value`).
+`student_app/` — one codebase for Android, iOS and Web, Arabic RTL with the bundled Cairo font.
+
+- **Screens:** login/register → home (stage chips + two-column subject grid, lock icon, Telegram dialog for locked subjects) → booklet reader (topics drawer, text/lists/LaTeX/images) with 4 bottom buttons: MCQ وزاري، MCQ الأستاذ، وضع الاختبار (difficulty picker), configurable 4th button.
+- **Solving:** server-shuffled questions/options, answers changeable until إرسال (and saved in the background for resuming), then score, correct answers, explanations and **اعرض في الملزمة**, which opens the reader scrolled to the highlighted passage. MCQ modes also have **أظهر الحل**.
+- **Protection:** `FLAG_SECURE` on Android, screenshot blocking + blur while recording on iOS (`screen_protector`), and a dynamic name+phone watermark on Web.
+- **Device:** a random `device_id` is generated once per install/browser and sent as `X-Device-Id`.
+
+```bash
+cd student_app
+flutter run                                   # mobile: talks to https://booklit-6xmk.onrender.com by default
+flutter run --dart-define=API_BASE_URL=http://10.0.2.2:8000/api/v1   # Android emulator → local Laravel
+./tool/build_web.sh                           # builds the web app into ../public/app
+flutter build apk --release                   # Android (needs the Android SDK)
+flutter build ipa                             # iOS (needs macOS + Xcode)
+```
+
+The web build loads Flutter's CanvasKit engine from Google's CDN, so only ~6 MB is committed in `public/app`.

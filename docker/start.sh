@@ -10,6 +10,11 @@ esac
 
 php artisan migrate --force
 php artisan db:seed --force          # creates the admin account if it does not exist
+
+# Optional demo data (dentistry stages, questions, students). Idempotent: skips if already seeded.
+if [ "$SEED_DEMO_CONTENT" = "true" ]; then
+  php artisan db:seed --class=DemoContentSeeder --force
+fi
 php artisan storage:link 2>/dev/null || true
 php artisan optimize
 php artisan filament:optimize

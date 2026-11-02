@@ -34,6 +34,8 @@ services:
         sync: false
       - key: ADMIN_TELEGRAM_URL
         sync: false
+      - key: SEED_DEMO_CONTENT   # "true" loads the dentistry demo data on deploy
+        value: "false"
       # Render's disk is wiped on every deploy: store uploads on S3-compatible storage (e.g. Cloudflare R2).
       - key: MEDIA_DISK
         value: public
