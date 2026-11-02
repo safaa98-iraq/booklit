@@ -1,0 +1,48 @@
+# Render Blueprint: New → Blueprint → select this repository.
+# Creates the Laravel web service (Docker) and a PostgreSQL database.
+services:
+  - type: web
+    name: booklit
+    runtime: docker
+    plan: free
+    region: frankfurt
+    branch: claude/eloquent-bohr-f56ofv
+    dockerfilePath: ./Dockerfile
+    healthCheckPath: /up
+    envVars:
+      - key: APP_NAME
+        value: Booklit
+      - key: APP_KEY
+        generateValue: true
+      - key: APP_URL
+        sync: false            # e.g. https://booklit.onrender.com
+      - key: DB_CONNECTION
+        value: pgsql
+      - key: DB_URL
+        fromDatabase:
+          name: booklit-db
+          property: connectionString
+      - key: SESSION_DRIVER
+        value: database
+      - key: CACHE_STORE
+        value: database
+      - key: ADMIN_NAME
+        value: المدير
+      - key: ADMIN_EMAIL
+        sync: false
+      - key: ADMIN_PASSWORD
+        sync: false
+      - key: ADMIN_TELEGRAM_URL
+        sync: false
+      # Render's disk is wiped on every deploy: store uploads on S3-compatible storage (e.g. Cloudflare R2).
+      - key: MEDIA_DISK
+        value: public
+      - key: FILAMENT_FILESYSTEM_DISK
+        value: public
+
+databases:
+  - name: booklit-db
+    plan: free
+    region: frankfurt
+    databaseName: booklit
+    user: booklit

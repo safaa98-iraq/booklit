@@ -14,7 +14,8 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
-        User::updateOrCreate(
+        // firstOrCreate: runs on every deploy without resetting a changed admin password.
+        User::firstOrCreate(
             ['email' => config('booklit.admin.email')],
             [
                 'name' => config('booklit.admin.name'),

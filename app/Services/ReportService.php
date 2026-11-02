@@ -51,8 +51,8 @@ class ReportService
             ->selectRaw('attempts.user_id as user_id')
             ->selectRaw('attempt_answers.topic_id as topic_id')
             ->selectRaw('COUNT(*) as answered')
-            ->selectRaw('SUM(CASE WHEN attempt_answers.is_correct = 1 THEN 1 ELSE 0 END) as correct')
-            ->selectRaw('ROUND(SUM(CASE WHEN attempt_answers.is_correct = 1 THEN 1 ELSE 0 END) * 100.0 / COUNT(*), 1) as accuracy')
+            ->selectRaw('SUM(CASE WHEN attempt_answers.is_correct THEN 1 ELSE 0 END) as correct')
+            ->selectRaw('ROUND(SUM(CASE WHEN attempt_answers.is_correct THEN 1 ELSE 0 END) * 100.0 / COUNT(*), 1) as accuracy')
             ->with(['student', 'topic.booklet.subject']);
     }
 }
