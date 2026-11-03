@@ -1,5 +1,6 @@
 @extends('student.layout')
 @section('title', $booklet->title)
+@section('nav-title', $booklet->subject->name)
 @section('back', route('student.home'))
 @section('protected', '1')
 @section('topbar-actions')
@@ -31,8 +32,13 @@
         </aside>
 
         <article class="booklet-content">
+            <header class="booklet-head">
+                <div class="muted small">{{ $booklet->subject->stage->name }} · {{ $booklet->subject->name }}</div>
+                <h1>{{ $booklet->title }}</h1>
+                @if ($booklet->description)<p class="muted" style="margin:6px 0 0">{{ $booklet->description }}</p>@endif
+            </header>
             @forelse ($booklet->topics as $topic)
-                <h2 class="topic-title" id="t-{{ $topic->id }}">{{ $topic->title }}</h2>
+                <h2 class="folder topic-title" id="t-{{ $topic->id }}">{{ $topic->title }}</h2>
                 @foreach ($topic->blocks as $block)
                     @include('student.partials.block', [
                         'block' => $block,
@@ -49,20 +55,20 @@
 @unless ($highlight)
     <nav class="actions" aria-label="الأسئلة">
         <div class="inner">
-            <button class="action" type="button" data-open="mcq-ministerial" @disabled($stats['ministerial'] === 0)>
+            <button class="action a-blue" type="button" data-open="mcq-ministerial" @disabled($stats['ministerial'] === 0)>
                 @include('student.partials.icon', ['name' => 'bank']) MCQ وزاري
             </button>
-            <button class="action" type="button" data-open="mcq-teacher" @disabled($stats['teacher'] === 0)>
+            <button class="action a-gray" type="button" data-open="mcq-teacher" @disabled($stats['teacher'] === 0)>
                 @include('student.partials.icon', ['name' => 'school']) MCQ الأستاذ
             </button>
-            <button class="action" type="button" data-open="quiz-dialog" @disabled(array_sum($stats['quiz']) === 0)>
+            <button class="action a-yellow" type="button" data-open="quiz-dialog" @disabled(array_sum($stats['quiz']) === 0)>
                 @include('student.partials.icon', ['name' => 'timer']) وضع الاختبار
             </button>
             @php($fourthIcon = ['video' => 'video', 'info' => 'info'][$fourth['icon'] ?? ''] ?? 'star')
             @if (($fourth['enabled'] ?? false) && ($fourth['action'] ?? '') === 'url' && filled($fourth['value'] ?? null))
-                <a class="action" href="{{ $fourth['value'] }}" target="_blank" rel="noopener">@include('student.partials.icon', ['name' => $fourthIcon]) {{ $fourth['label'] }}</a>
+                <a class="action a-lavender" href="{{ $fourth['value'] }}" target="_blank" rel="noopener">@include('student.partials.icon', ['name' => $fourthIcon]) {{ $fourth['label'] }}</a>
             @else
-                <button class="action" type="button" @disabled(! ($fourth['enabled'] ?? false)) onclick="alert('هذه الميزة قادمة قريباً.')">
+                <button class="action a-lavender" type="button" @disabled(! ($fourth['enabled'] ?? false)) onclick="alert('هذه الميزة قادمة قريباً.')">
                     @include('student.partials.icon', ['name' => $fourthIcon]) {{ ($fourth['enabled'] ?? false) ? $fourth['label'] : 'قريباً' }}
                 </button>
             @endif
@@ -94,7 +100,7 @@
                     <input type="hidden" name="mode" value="{{ $source }}">
                     <button class="btn btn-block" type="submit">@include('student.partials.icon', ['name' => 'pen', 'size' => 18]) ابدأ الحل</button>
                 </form>
-                <a class="btn btn-outline btn-block" href="{{ route('student.booklets.review', [$booklet, $source]) }}">@include('student.partials.icon', ['name' => 'eye', 'size' => 18]) أظهر الحل</a>
+                <a class="btn btn-ghost btn-block" href="{{ route('student.booklets.review', [$booklet, $source]) }}">@include('student.partials.icon', ['name' => 'eye', 'size' => 18]) أظهر الحل</a>
             </div>
         </div>
     </dialog>

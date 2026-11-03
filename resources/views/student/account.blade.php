@@ -1,15 +1,16 @@
 @extends('student.layout')
 @section('title', 'حسابي')
+@section('nav-title', 'حسابي')
 @section('back', route('student.home'))
 @section('content')
 @php($settings = app(\App\Services\SettingsService::class))
 <main class="container narrow" style="padding:16px 16px 40px">
-    <div class="card"><div class="card-body" style="display:flex;align-items:center;gap:14px">
-        <span class="avatar" style="width:54px;height:54px;font-size:1.3rem">{{ mb_substr($student->name, 0, 1) }}</span>
-        <div><strong style="font-size:1.15rem">{{ $student->name }}</strong><div class="muted" dir="ltr" style="text-align:right">{{ $student->phone }}</div></div>
-    </div></div>
+    <div class="folder f-lavender" style="flex-direction:row;align-items:center;gap:16px;min-height:0">
+        <span class="avatar" style="width:60px;height:60px;font-size:1.5rem;background:#0a0a0a;color:#fff">{{ mb_substr($student->name, 0, 1) }}</span>
+        <div><span class="title" style="font-size:1.4rem">{{ $student->name }}</span><div dir="ltr" style="text-align:right;opacity:.75">{{ $student->phone }}</div></div>
+    </div>
 
-    <h3>اشتراكاتي</h3>
+    <h3 style="font-size:1.4rem;margin:28px 0 10px">اشتراكاتي</h3>
     <div class="card">
         @forelse ($subscriptions as $sub)
             <div class="list-item">
@@ -21,14 +22,14 @@
         @endforelse
     </div>
 
-    <h3>محاولاتي</h3>
+    <h3 style="font-size:1.4rem;margin:28px 0 10px">محاولاتي</h3>
     <div class="card">
         @forelse ($attempts as $a)
             <a class="list-item" href="{{ route('student.attempts.show', $a) }}">
                 @if ($a->isSubmitted())
-                    <span class="score-badge" style="background:{{ $a->score >= 50 ? 'var(--green-soft)' : 'var(--red-soft)' }}">{{ round($a->score) }}%</span>
+                    <span class="score-badge" style="background:{{ $a->score >= 75 ? 'var(--mint)' : ($a->score >= 50 ? 'var(--yellow)' : 'var(--coral)') }}">{{ round($a->score) }}%</span>
                 @else
-                    <span class="score-badge" style="background:var(--orange-soft)">جارٍ</span>
+                    <span class="score-badge" style="background:var(--lavender)">جارٍ</span>
                 @endif
                 <span class="grow">
                     <strong>{{ $a->mode->getLabel() }}</strong>@if ($a->difficulty) <span class="pill pill-{{ $a->difficulty->value }}">{{ $a->difficulty->getLabel() }}</span>@endif<br>
@@ -47,7 +48,7 @@
         @endif
         <form method="POST" action="{{ route('student.logout') }}">
             @csrf
-            <button class="btn btn-outline btn-block" type="submit">@include('student.partials.icon', ['name' => 'logout', 'size' => 18]) تسجيل الخروج</button>
+            <button class="btn btn-ghost btn-block" type="submit">@include('student.partials.icon', ['name' => 'logout', 'size' => 18]) تسجيل الخروج</button>
         </form>
         <p class="center muted small">الحساب مرتبط بهذا الجهاز. لتغيير الجهاز تواصل مع الإدارة.</p>
     </div>

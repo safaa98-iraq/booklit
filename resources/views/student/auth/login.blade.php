@@ -1,14 +1,19 @@
 @extends('student.layout')
 @section('title', 'تسجيل الدخول')
 @section('content')
-<main class="auth">
-    <div class="auth-box">
-        <div class="auth-logo">
-            @include('student.partials.icon', ['name' => 'book', 'size' => 64])
-            <h1>بوكلت</h1>
-            <div class="muted">ملازم وأسئلة طب الأسنان</div>
+<main class="container">
+    <section class="auth">
+        <div class="intro">
+            <h1>مرحباً بعودتك<br>إلى <span style="color:var(--yellow)">بوكلت</span></h1>
+            <p class="muted" style="max-width:460px">سجّل الدخول لتكمل قراءة ملازمك وحل أسئلة الوزاري والأستاذ.</p>
+            <div class="cards3" style="max-width:560px;margin-top:20px">
+                <div class="folder f-blue" style="min-height:120px"><span class="kicker">ملازم</span><span class="title">لكل المراحل</span></div>
+                <div class="folder f-gray" style="min-height:120px"><span class="kicker">أسئلة</span><span class="title">مع الشرح</span></div>
+                <div class="folder f-yellow" style="min-height:120px"><span class="kicker">نتائج</span><span class="title">فورية</span></div>
+            </div>
         </div>
-        <div class="card"><div class="card-body">
+        <div class="folder f-dark panel">
+            <h2>تسجيل الدخول</h2>
             @if ($errors->any())
                 <div class="alert alert-error">{{ $errors->first() }}</div>
             @endif
@@ -22,11 +27,11 @@
                     <label for="password">كلمة المرور</label>
                     <input class="input" id="password" name="password" type="password" autocomplete="current-password" required>
                 </div>
-                <button class="btn btn-block" type="submit">تسجيل الدخول</button>
+                <button class="btn btn-block" type="submit">دخول</button>
             </form>
-            <p class="center" style="margin:14px 0 0">ليس لديك حساب؟ <a href="{{ route('student.register') }}">أنشئ حساباً جديداً</a></p>
-        </div></div>
-        <p class="center muted small">ملاحظة: يرتبط الحساب بجهاز واحد فقط.</p>
-    </div>
+            <p class="center muted" style="margin:18px 0 0">ليس لديك حساب؟ <a href="{{ route('student.register') }}" style="color:#fff;font-weight:700">أنشئ حساباً</a></p>
+            <p class="center muted small" style="margin:6px 0 0">يرتبط الحساب بجهاز واحد فقط.</p>
+        </div>
+    </section>
 </main>
 @endsection

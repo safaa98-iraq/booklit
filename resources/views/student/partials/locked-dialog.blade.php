@@ -10,7 +10,7 @@
                     @include('student.partials.icon', ['name' => 'send', 'size' => 18]) {{ $settings->get('locked_subject_button') }}
                 </a>
             @endif
-            <button class="btn btn-outline btn-block" type="button" data-close>إغلاق</button>
+            <button class="btn btn-ghost btn-block" type="button" data-close>إغلاق</button>
         </div>
     </div>
 </dialog>

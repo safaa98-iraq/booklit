@@ -1,5 +1,6 @@
 @extends('student.layout')
 @section('title', 'النتيجة')
+@section('nav-title', 'النتيجة')
 @section('back', $attempt->booklet ? route('student.booklets.show', $attempt->booklet) : route('student.home'))
 @section('content')
 @php
@@ -8,12 +9,19 @@
     $message = $score >= 90 ? 'ممتاز! أداء رائع 🌟' : ($score >= 75 ? 'جيد جداً، استمر 👏' : ($score >= 50 ? 'جيد، راجع الأسئلة الخاطئة' : 'تحتاج إلى مراجعة الملزمة'));
 @endphp
 <main class="container narrow" style="padding:16px 16px 40px">
-    <div class="card">
-        <div class="score">
-            <div class="ring" style="--p: {{ $score }}; --col: {{ $col }}"><span>{{ round($score) }}%</span></div>
-            <strong style="font-size:1.15rem">{{ $attempt->correct_count }} إجابة صحيحة من {{ $attempt->total_questions }}</strong>
-            <span class="muted">{{ $message }}</span>
-            <span class="muted small">{{ $attempt->mode->getLabel() }}@if ($attempt->difficulty) — {{ $attempt->difficulty->getLabel() }}@endif · {{ $attempt->booklet?->title }}</span>
+    <div class="result-top">
+        <div class="folder f-lavender">
+            <span class="kicker">{{ $attempt->mode->getLabel() }}@if ($attempt->difficulty) — {{ $attempt->difficulty->getLabel() }}@endif · {{ $attempt->booklet?->title }}</span>
+            <span><span class="big">{{ round($score) }}%</span><br><span class="title">{{ $message }}</span></span>
+        </div>
+        <div class="folder f-blue">
+            <span class="kicker">إجابات صحيحة</span>
+            <span class="big">{{ $attempt->correct_count }}<small style="font-size:1.2rem;opacity:.7"> / {{ $attempt->total_questions }}</small></span>
+        </div>
+        <div class="folder f-gray">
+            <span class="kicker">تحتاج مراجعة</span>
+            <span class="corner">@include('student.partials.icon', ['name' => 'arrow-up', 'size' => 24])</span>
+            <span class="big">{{ $attempt->total_questions - $attempt->correct_count }}</span>
         </div>
     </div>
 
@@ -26,7 +34,7 @@
                 @csrf
                 <input type="hidden" name="mode" value="{{ $attempt->mode->value }}">
                 @if ($attempt->difficulty)<input type="hidden" name="difficulty" value="{{ $attempt->difficulty->value }}">@endif
-                <button class="btn btn-outline" style="min-height:38px" type="submit">إعادة المحاولة</button>
+                <button class="btn btn-sm" type="submit">إعادة المحاولة</button>
             </form>
         @endif
     </div>

@@ -3,6 +3,9 @@
 namespace App\Http\Controllers\Student;
 
 use App\Http\Controllers\Controller;
+use App\Enums\AttemptStatus;
+use App\Models\Booklet;
+use App\Models\Question;
 use App\Models\Stage;
 use App\Models\Subject;
 use App\Services\SubscriptionService;
@@ -14,9 +17,20 @@ class HomeController extends Controller
 {
     public function __construct(private readonly SubscriptionService $access) {}
 
-    /** Stages as tabs, subjects as a two-column grid with lock state. */
+    /** Visitors get the landing page; students their dashboard and subject grid. */
     public function index(Request $request): View
     {
+        if (! $request->user('student')) {
+            return view('student.landing', [
+                'stages' => Stage::active()->ordered()->get(['id', 'name']),
+                'stats' => [
+                    'stages' => Stage::active()->count(),
+                    'booklets' => Booklet::published()->count(),
+                    'questions' => Question::active()->count(),
+                ],
+            ]);
+        }
+
         $stages = Stage::active()->ordered()
             ->with(['subjects' => fn ($q) => $q->active()->with('stage')])
             ->get();
@@ -27,12 +41,20 @@ class HomeController extends Controller
             $request->session()->put('stage_id', $stage->id);
         }
 
-        $student = $request->user();
+        $student = $request->user('student');
         $locked = $stage
             ? $stage->subjects->mapWithKeys(fn (Subject $s) => [$s->id => $this->access->isLocked($student, $s)])
             : collect();
 
-        return view('student.home', compact('stages', 'stage', 'locked'));
+        $submitted = $student->attempts()->where('status', AttemptStatus::Submitted);
+        $summary = [
+            'attempts' => (clone $submitted)->count(),
+            'average' => (int) round((float) (clone $submitted)->avg('score')),
+            'subscriptions' => $student->subscriptions()->currentlyActive()->count(),
+        ];
+        $lastBooklet = $student->attempts()->whereNotNull('booklet_id')->latest('id')->first()?->booklet;
+
+        return view('student.home', compact('stages', 'stage', 'locked', 'summary', 'lastBooklet'));
     }
 
     /** Subject → its booklet (directly when there is only one). */

@@ -19,8 +19,10 @@ Route::middleware(EnsureStudentWebDevice::class)->name('student.')->group(functi
         Route::post('register', [AuthController::class, 'register'])->middleware('throttle:auth')->name('register.submit');
     });
 
+    // Landing page for visitors, dashboard for signed-in students.
+    Route::get('/', [HomeController::class, 'index'])->name('home');
+
     Route::middleware('auth:student')->group(function () {
-        Route::get('/', [HomeController::class, 'index'])->name('home');
         Route::post('logout', [AuthController::class, 'logout'])->name('logout');
         Route::get('account', AccountController::class)->name('account');
 

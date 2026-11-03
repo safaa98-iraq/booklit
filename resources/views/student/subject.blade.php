@@ -1,5 +1,6 @@
 @extends('student.layout')
 @section('title', $subject->name)
+@section('nav-title', $subject->name)
 @section('back', route('student.home'))
 @section('content')
 <main class="container narrow" style="padding-top:16px">

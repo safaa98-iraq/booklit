@@ -1,5 +1,6 @@
 @extends('student.layout')
 @section('title', $attempt->mode->getLabel())
+@section('nav-title', $attempt->mode->getLabel())
 @section('back', $attempt->booklet ? route('student.booklets.show', $attempt->booklet) : route('student.home'))
 @section('protected', '1')
 @section('content')
@@ -13,7 +14,7 @@
                 @if ($attempt->difficulty)<span class="pill pill-{{ $attempt->difficulty->value }}">{{ $attempt->difficulty->getLabel() }}</span>@endif
                 <span style="flex:1"></span>
                 <span class="muted small">أجبت <b id="answered">0</b> من {{ $attempt->answers->count() }}</span>
-                <button class="btn" style="min-height:40px" type="submit">إرسال</button>
+                <button class="btn btn-sm btn-yellow" type="submit">إرسال</button>
             </div>
             <div class="progress"><div id="bar"></div></div>
         </div>
@@ -44,7 +45,7 @@
                 </div>
             </section>
         @endforeach
-        <button class="btn btn-block" type="submit">إرسال الإجابات</button>
+        <button class="btn btn-block btn-yellow" type="submit" style="margin-top:10px">إرسال الإجابات</button>
     </main>
 </form>
 

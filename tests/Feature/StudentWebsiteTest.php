@@ -33,9 +33,11 @@ class StudentWebsiteTest extends TestCase
         $this->assertAuthenticatedAs($student, 'student');
     }
 
-    public function test_guests_are_sent_to_the_login_page(): void
+    public function test_guests_see_the_landing_page_and_protected_pages_need_login(): void
     {
-        $this->get('/')->assertRedirect('/login');
+        Booklet::factory()->create();
+        $this->get('/')->assertOk()->assertSee('ادرس طب الأسنان')->assertSee('إنشاء حساب');
+        $this->get('/account')->assertRedirect('/login');
         $this->get('/login')->assertOk()->assertSee('تسجيل الدخول');
         $this->get('/app/old/link')->assertRedirect('/');
     }

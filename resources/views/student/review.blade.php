@@ -1,5 +1,6 @@
 @extends('student.layout')
 @section('title', $mode->getLabel().' — الحلول')
+@section('nav-title', 'الحلول')
 @section('back', route('student.booklets.show', $booklet))
 @section('protected', '1')
 @section('content')

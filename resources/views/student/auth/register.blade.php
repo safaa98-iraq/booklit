@@ -1,14 +1,19 @@
 @extends('student.layout')
 @section('title', 'إنشاء حساب')
 @section('content')
-<main class="auth">
-    <div class="auth-box">
-        <div class="auth-logo">
-            @include('student.partials.icon', ['name' => 'book', 'size' => 56])
-            <h1>إنشاء حساب</h1>
-            <div class="muted">سجّل لتصفح الملازم وحل الأسئلة</div>
+<main class="container">
+    <section class="auth">
+        <div class="intro">
+            <h1>ابدأ رحلتك<br>في <span style="color:var(--lavender)">طب الأسنان</span></h1>
+            <p class="muted" style="max-width:460px">أنشئ حسابك مجاناً بالاسم ورقم الهاتف. المواد غير الوزارية متاحة فوراً.</p>
+            <div class="cards3" style="max-width:560px;margin-top:20px">
+                <div class="folder f-lavender" style="min-height:120px"><span class="kicker">الخطوة 1</span><span class="title">أنشئ حسابك</span></div>
+                <div class="folder f-gray" style="min-height:120px"><span class="kicker">الخطوة 2</span><span class="title">اختر مادتك</span></div>
+                <div class="folder f-yellow" style="min-height:120px"><span class="kicker">الخطوة 3</span><span class="title">ادرس وحل</span></div>
+            </div>
         </div>
-        <div class="card"><div class="card-body">
+        <div class="folder f-dark panel">
+            <h2>إنشاء حساب</h2>
             <form method="POST" action="{{ route('student.register.submit') }}">
                 @csrf
                 <div class="field">
@@ -32,8 +37,8 @@
                 </div>
                 <button class="btn btn-block" type="submit">إنشاء الحساب</button>
             </form>
-            <p class="center" style="margin:14px 0 0">لديك حساب؟ <a href="{{ route('student.login') }}">سجّل الدخول</a></p>
-        </div></div>
-    </div>
+            <p class="center muted" style="margin:18px 0 0">لديك حساب؟ <a href="{{ route('student.login') }}" style="color:#fff;font-weight:700">سجّل الدخول</a></p>
+        </div>
+    </section>
 </main>
 @endsection
