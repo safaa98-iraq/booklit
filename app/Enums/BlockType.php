@@ -12,6 +12,7 @@ enum BlockType: string implements HasLabel
     case List = 'list';
     case Math = 'math';
     case Quote = 'quote';
+    case Table = 'table';
 
     public function getLabel(): string
     {
@@ -22,12 +23,13 @@ enum BlockType: string implements HasLabel
             self::List => 'قائمة',
             self::Math => 'معادلة رياضية (LaTeX)',
             self::Quote => 'اقتباس / ملاحظة',
+            self::Table => 'جدول',
         };
     }
 
     /** Block types whose text can be referenced by a passage anchor. */
     public function isAnchorable(): bool
     {
-        return in_array($this, [self::Paragraph, self::Heading, self::List, self::Quote, self::Math], true);
+        return in_array($this, [self::Paragraph, self::Heading, self::List, self::Quote, self::Math, self::Table], true);
     }
 }

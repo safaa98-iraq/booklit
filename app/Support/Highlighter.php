@@ -5,37 +5,67 @@ namespace App\Support;
 use Illuminate\Support\HtmlString;
 
 /**
- * Renders (escaped) text, wrapping the code-point range [start, end) of the
- * containing block's plain text in <mark>. $base is where $text starts
- * inside the block's plain text (used for list items).
+ * Renders escaped text with highlighted ranges. Ranges are code-point offsets
+ * into the containing block's plain text; $base is where $text starts inside
+ * it (list items, table cells). Each range: ['start', 'end', 'class', 'id'?].
  */
 class Highlighter
 {
-    public static function render(string $text, int $base = 0, ?array $range = null): HtmlString
+    public static function render(string $text, int $base = 0, array $ranges = []): HtmlString
     {
         $length = mb_strlen($text);
-        $from = $range ? max(0, min($length, $range['start'] - $base)) : 0;
-        $to = $range ? max(0, min($length, $range['end'] - $base)) : 0;
 
-        if (! $range || $from >= $to) {
-            return new HtmlString(nl2br(e($text)));
+        // Clip ranges to this piece of text.
+        $local = [];
+        foreach ($ranges as $r) {
+            $from = max(0, min($length, $r['start'] - $base));
+            $to = max(0, min($length, $r['end'] - $base));
+            if ($from < $to) {
+                $local[] = ['start' => $from, 'end' => $to] + $r;
+            }
         }
 
-        return new HtmlString(
-            nl2br(e(mb_substr($text, 0, $from)))
-            .'<mark class="anchor">'.nl2br(e(mb_substr($text, $from, $to - $from))).'</mark>'
-            .nl2br(e(mb_substr($text, $to)))
-        );
+        if (! $local) {
+            return new HtmlString(e($text));
+        }
+
+        // Split at every boundary; each segment gets the classes of the ranges covering it.
+        $cuts = [0, $length];
+        foreach ($local as $r) {
+            $cuts[] = $r['start'];
+            $cuts[] = $r['end'];
+        }
+        $cuts = array_values(array_unique($cuts));
+        sort($cuts);
+
+        $html = '';
+        for ($i = 0; $i < count($cuts) - 1; $i++) {
+            [$a, $b] = [$cuts[$i], $cuts[$i + 1]];
+            $piece = e(mb_substr($text, $a, $b - $a));
+            $cover = array_filter($local, fn ($r) => $r['start'] <= $a && $r['end'] >= $b);
+
+            if (! $cover) {
+                $html .= $piece;
+
+                continue;
+            }
+
+            $classes = implode(' ', array_unique(array_column($cover, 'class')));
+            $id = collect($cover)->firstWhere('id')['id'] ?? null;
+            $html .= '<mark class="'.e($classes).'"'.($id ? ' data-hl="'.(int) $id.'"' : '').'>'.$piece.'</mark>';
+        }
+
+        return new HtmlString($html);
     }
 
-    /** Offset of each list item inside the block's plain text (items are joined with "\n"). */
-    public static function listOffsets(array $items): array
+    /** Offset of each piece inside the plain text when pieces are joined with $separatorLength chars. */
+    public static function offsets(array $pieces, int $separatorLength = 1): array
     {
         $offsets = [];
         $offset = 0;
-        foreach (array_values($items) as $i => $item) {
+        foreach (array_values($pieces) as $i => $piece) {
             $offsets[$i] = $offset;
-            $offset += mb_strlen((string) $item) + 1;
+            $offset += mb_strlen((string) $piece) + $separatorLength;
         }
 
         return $offsets;

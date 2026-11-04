@@ -3,73 +3,112 @@
 namespace App\Http\Controllers\Student;
 
 use App\Http\Controllers\Controller;
-use App\Enums\AttemptStatus;
 use App\Models\Booklet;
-use App\Models\Question;
+use App\Models\ContentBlock;
 use App\Models\Stage;
-use App\Models\Subject;
+use App\Models\Topic;
+use App\Services\ProgressService;
 use App\Services\SubscriptionService;
+use App\Support\Snippet;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
 
 class HomeController extends Controller
 {
-    public function __construct(private readonly SubscriptionService $access) {}
+    public function __construct(
+        private readonly ProgressService $progress,
+        private readonly SubscriptionService $access,
+    ) {}
 
-    /** Visitors get the landing page; students their dashboard and subject grid. */
-    public function index(Request $request): View
+    /** Greeting, Continue Reading, stage shortcuts, and booklets in progress. */
+    public function index(Request $request): View|RedirectResponse
     {
-        if (! $request->user('student')) {
-            return view('student.landing', [
-                'stages' => Stage::active()->ordered()->get(['id', 'name']),
-                'stats' => [
-                    'stages' => Stage::active()->count(),
-                    'booklets' => Booklet::published()->count(),
-                    'questions' => Question::active()->count(),
-                ],
-            ]);
-        }
-
-        $stages = Stage::active()->ordered()
-            ->with(['subjects' => fn ($q) => $q->active()->with('stage')])
-            ->get();
-
-        $stageId = $request->integer('stage') ?: $request->session()->get('stage_id');
-        $stage = $stages->firstWhere('id', $stageId) ?? $stages->first();
-        if ($stage) {
-            $request->session()->put('stage_id', $stage->id);
-        }
-
         $student = $request->user('student');
-        $locked = $stage
-            ? $stage->subjects->mapWithKeys(fn (Subject $s) => [$s->id => $this->access->isLocked($student, $s)])
-            : collect();
+        if (! $student) {
+            return redirect()->route('student.login');
+        }
 
-        $submitted = $student->attempts()->where('status', AttemptStatus::Submitted);
-        $summary = [
-            'attempts' => (clone $submitted)->count(),
-            'average' => (int) round((float) (clone $submitted)->avg('score')),
-            'subscriptions' => $student->subscriptions()->currentlyActive()->count(),
-        ];
-        $lastBooklet = $student->attempts()->whereNotNull('booklet_id')->latest('id')->first()?->booklet;
+        $last = $this->progress->lastRead($student);
+        $continue = $last && $this->access->canAccessSubject($student, $last->booklet->subject)
+            ? ['progress' => $last, 'booklet' => $this->progress->bookletProgress($student, $last->booklet)]
+            : null;
 
-        return view('student.home', compact('stages', 'stage', 'locked', 'summary', 'lastBooklet'));
+        $inProgress = Booklet::published()
+            ->whereIn('id', $student->topicProgress()->select('booklet_id'))
+            ->with('subject.stage')
+            ->get()
+            ->map(fn (Booklet $b) => ['booklet' => $b] + $this->progress->bookletProgress($student, $b))
+            ->sortByDesc('percent')
+            ->take(6)
+            ->values();
+
+        return view('student.home', [
+            'continue' => $continue,
+            'stages' => Stage::active()->ordered()->withCount(['subjects' => fn ($q) => $q->active()])->get(),
+            'inProgress' => $inProgress,
+            'unread' => count($this->notifications($request)),
+        ]);
     }
 
-    /** Subject → its booklet (directly when there is only one). */
-    public function subject(Request $request, Subject $subject): View|RedirectResponse
+    /** Search booklets and topics by title, and topics by their content. */
+    public function search(Request $request): View
     {
-        $subject->load('stage');
-        $this->authorize('view', $subject);
-        $this->access->ensureAccess($request->user(), $subject);
+        $q = trim((string) $request->query('q', ''));
+        $booklets = collect();
+        $topics = collect();
 
-        $booklets = $subject->booklets()->published()->get();
+        if (mb_strlen($q) >= 2) {
+            $like = '%'.str_replace(['%', '_'], ['\%', '\_'], $q).'%';
+            $booklets = Booklet::published()->where('title', 'like', $like)->with('subject.stage')->limit(10)->get();
 
-        if ($booklets->count() === 1) {
-            return redirect()->route('student.booklets.show', $booklets->first());
+            $byContent = ContentBlock::where('plain_text', 'like', $like)->pluck('topic_id');
+            $topics = Topic::where(fn ($w) => $w->where('title', 'like', $like)->orWhereIn('id', $byContent))
+                ->whereHas('booklet', fn ($b) => $b->published())
+                ->with(['booklet.subject.stage', 'blocks' => fn ($b) => $b->where('plain_text', 'like', $like)])
+                ->limit(20)->get()
+                ->map(function (Topic $topic) use ($q) {
+                    $block = $topic->blocks->first();
+                    $pos = $block ? mb_stripos($block->plain_text, $q) : false;
+
+                    return [
+                        'topic' => $topic,
+                        'snippet' => $block ? Snippet::around($block->plain_text, $q, 50) : null,
+                        'hl' => $block && $pos !== false ? "{$block->uuid}:{$pos}:".($pos + mb_strlen($q)) : null,
+                    ];
+                });
         }
 
-        return view('student.subject', compact('subject', 'booklets'));
+        $student = $request->user();
+        $lockedSubjects = collect($booklets->pluck('subject'))->merge($topics->pluck('topic.booklet.subject'))
+            ->filter()->unique('id')
+            ->mapWithKeys(fn ($s) => [$s->id => $this->access->isLocked($student, $s)]);
+
+        return view('student.search', compact('q', 'booklets', 'topics', 'lockedSubjects'));
+    }
+
+    public function notifications(Request $request): array|View
+    {
+        $student = $request->user('student');
+        $items = [];
+
+        if ($student->preference('notifications')) {
+            foreach ($student->subscriptions()->currentlyActive()->with(['stage', 'subject'])->get() as $sub) {
+                $days = (int) now()->diffInDays($sub->expires_at, false);
+                if ($days <= 14) {
+                    $items[] = ['icon' => 'clock', 'title' => 'اشتراكك ينتهي قريباً', 'body' => ($sub->stage?->name ?? $sub->subject?->name)." — بعد {$days} يوم", 'date' => $sub->expires_at];
+                }
+                if ($sub->created_at->gt(now()->subDays(7))) {
+                    $items[] = ['icon' => 'check', 'title' => 'تم تفعيل اشتراكك', 'body' => $sub->stage?->name ?? $sub->subject?->name, 'date' => $sub->created_at];
+                }
+            }
+            foreach (Booklet::published()->where('created_at', '>', now()->subDays(14))->with('subject')->latest()->limit(5)->get() as $b) {
+                $items[] = ['icon' => 'book', 'title' => 'ملزمة جديدة', 'body' => "{$b->title} — {$b->subject->name}", 'date' => $b->created_at, 'url' => route('student.booklets.show', $b)];
+            }
+        }
+
+        usort($items, fn ($a, $b) => $b['date'] <=> $a['date']);
+
+        return $request->routeIs('student.notifications') ? view('student.notifications', ['items' => $items]) : $items;
     }
 }

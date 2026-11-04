@@ -17,7 +17,7 @@ class SubjectLockedException extends RuntimeException
 
         // Web site: back to the home page, which shows the "locked" dialog.
         if (! $request->expectsJson() && ! $request->is('api/*')) {
-            return redirect()->route('student.home')->with('locked', $settings->get('locked_subject_message'));
+            return redirect()->route('student.library')->with('locked', $settings->get('locked_subject_message'));
         }
 
         return response()->json([

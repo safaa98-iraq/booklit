@@ -6,7 +6,7 @@ use App\Enums\AttemptMode;
 use App\Enums\Difficulty;
 use App\Http\Controllers\Controller;
 use App\Models\Attempt;
-use App\Models\Booklet;
+use App\Models\Topic;
 use App\Services\AttemptService;
 use App\Services\SubscriptionService;
 use Illuminate\Http\JsonResponse;
@@ -22,8 +22,10 @@ class AttemptController extends Controller
         private readonly SubscriptionService $access,
     ) {}
 
-    public function store(Request $request, Booklet $booklet): RedirectResponse
+    /** Start a quiz from the reader, scoped to the current topic. */
+    public function store(Request $request, Topic $topic): RedirectResponse
     {
+        $booklet = $topic->booklet;
         $data = $request->validate([
             'mode' => ['required', Rule::enum(AttemptMode::class)],
             'difficulty' => ['nullable', 'required_if:mode,quiz', Rule::enum(Difficulty::class)],
@@ -39,6 +41,7 @@ class AttemptController extends Controller
             $booklet,
             null,
             Difficulty::tryFrom((string) ($data['difficulty'] ?? '')),
+            $topic,
         );
 
         return redirect()->route('student.attempts.show', $attempt);
@@ -49,7 +52,7 @@ class AttemptController extends Controller
     {
         $this->authorize('view', $attempt);
 
-        $attempt->load(['booklet', 'answers.question.options']);
+        $attempt->load(['booklet', 'topic', 'answers.question.options']);
         if ($attempt->isSubmitted()) {
             $attempt->load('answers.question.anchors.block.topic');
         }

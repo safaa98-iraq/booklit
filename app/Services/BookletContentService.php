@@ -27,6 +27,7 @@ class BookletContentService
         'list' => ['style', 'items'],
         'math' => ['latex', 'display'],
         'quote' => ['text', 'variant'],
+        'table' => ['rows', 'header', 'text'],
     ];
 
     /** Convert stored blocks into editor state. */
@@ -35,7 +36,7 @@ class BookletContentService
         return $topic->blocks()->get()
             ->map(fn (ContentBlock $block) => [
                 'type' => $block->type->value,
-                'data' => ['block_uuid' => $block->uuid] + ($block->data ?? []),
+                'data' => ['block_uuid' => $block->uuid] + $this->editorData($block),
             ])
             ->values()
             ->all();
@@ -101,6 +102,19 @@ class BookletContentService
         });
     }
 
+    /** Tables are edited as text: one row per line, cells separated by "|". */
+    private function editorData(ContentBlock $block): array
+    {
+        $data = $block->data ?? [];
+
+        if ($block->type === BlockType::Table) {
+            $data['text'] = implode("\n", array_map(fn ($row) => implode(' | ', (array) $row), $data['rows'] ?? []));
+            unset($data['rows']);
+        }
+
+        return $data;
+    }
+
     /** Create a topic (title + blocks) at the end of the booklet. */
     public function createTopic(Booklet $booklet, array $data): Topic
     {
@@ -129,6 +143,20 @@ class BookletContentService
         });
     }
 
+    /** "a | b\nc | d" → [["a","b"],["c","d"]] (blank lines dropped). */
+    private function parseTable(string $text): array
+    {
+        $rows = [];
+        foreach (preg_split('/\R/u', trim($text)) as $line) {
+            if (trim($line) === '') {
+                continue;
+            }
+            $rows[] = array_map('trim', explode('|', $line));
+        }
+
+        return $rows;
+    }
+
     private function normalize(BlockType $type, array $data): array
     {
         $clean = Arr::only($data, self::SCHEMA[$type->value]);
@@ -144,6 +172,12 @@ class BookletContentService
             ],
             BlockType::Math => ['latex' => (string) ($clean['latex'] ?? ''), 'display' => (bool) ($clean['display'] ?? true)],
             BlockType::Quote => ['text' => (string) ($clean['text'] ?? ''), 'variant' => $clean['variant'] ?? 'note'],
+            BlockType::Table => [
+                'header' => (bool) ($clean['header'] ?? true),
+                'rows' => isset($clean['rows']) && is_array($clean['rows'])
+                    ? array_values(array_map(fn ($r) => array_map('strval', (array) $r), $clean['rows']))
+                    : $this->parseTable((string) ($clean['text'] ?? '')),
+            ],
             BlockType::Image => [
                 'path' => is_array($clean['path'] ?? null) ? (Arr::first($clean['path']) ?? null) : ($clean['path'] ?? null),
                 'caption' => $clean['caption'] ?? null,

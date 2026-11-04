@@ -158,12 +158,16 @@ Correct answers are never included while an attempt is `in_progress`. Phone numb
 
 ## Student web site
 
-Routes in `routes/web.php`, controllers in `app/Http/Controllers/Student`, views in `resources/views/student`, styles in `public/css/student.css`.
+Mobile-first, light theme (white/lavender, violet `#493BEA` + blue `#2452DB`). Routes in `routes/web.php`, controllers in `app/Http/Controllers/Student`, views in `resources/views/student`, styles in `public/css/student.css` (no build step).
 
-- Separate `student` auth guard (session), so a student session never mixes with the admin panel.
-- **One device:** each browser gets a permanent `booklit_device` cookie; signing in binds it as the account's device (same rules as the API). If the admin resets the device, the browser is signed out.
-- Pages: login/register → home (stage chips, two-column subject grid, lock + Telegram dialog) → reader (topics, highlighted passage via `?hl=<block>:<start>:<end>`) with the 4 bottom buttons → solve (answers changeable, autosaved) → results with explanations and **اعرض في الملزمة** → account (subscriptions, attempt history).
-- Protection on the web: name+phone watermark on every page, text selection/copy/right-click/print disabled on content pages.
+- **Bottom tab bar** on main pages: الرئيسية، المكتبة، التقدم، المفضلة، حسابي.
+- **Home:** logo, notifications and search, *Continue Reading* (last topic + booklet progress), stage shortcuts, booklets in progress.
+- **Library:** stage → subjects (paid ones with a small lock + Telegram dialog) → booklets list + topics of the selected booklet (two columns on desktop, sequential on phones).
+- **Reader:** one topic per page; the top bar hides while reading; a small bottom bar (contents / previous / n of m / next / tools); reading position and time are saved (`topic_progress`), a topic is complete at 90% read. Quiz buttons below the content use **only the current topic's questions**. *أدوات* (Edit) holds contents, in-booklet search, text size, bookmark and personal highlighting (`user_highlights`).
+- **Progress:** overall % and per subject → per booklet/topic, computed from real reading activity. **Favorites:** booklets and topics. **Profile:** stats (booklets, accuracy, study time) + settings pages (edit profile, password, notifications, appearance, language, recently viewed, results, help, about, logout).
+- Paid content is checked on the server for every page and API call (`GuardsContent`), never only hidden in the UI.
+- Separate `student` session guard; one bound device per account via a permanent browser cookie; watermark with name+phone; copy/print disabled on content pages.
+- Content blocks now include **tables** (edited as "cell | cell" lines in the admin block editor; anchors and highlights work inside cells).
 
 ## Student app (Flutter) — paused
 

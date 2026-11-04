@@ -11,6 +11,7 @@ use App\Models\AttemptAnswer;
 use App\Models\Booklet;
 use App\Models\Question;
 use App\Models\Subject;
+use App\Models\Topic;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\DB;
@@ -27,8 +28,12 @@ class AttemptService
     /**
      * Start an attempt on a booklet, or on a subject's standalone question bank.
      */
-    public function start(User $user, AttemptMode $mode, ?Booklet $booklet = null, ?Subject $subject = null, ?Difficulty $difficulty = null): Attempt
+    public function start(User $user, AttemptMode $mode, ?Booklet $booklet = null, ?Subject $subject = null, ?Difficulty $difficulty = null, ?Topic $topic = null): Attempt
     {
+        if ($topic) {
+            $booklet ??= $topic->booklet;
+        }
+
         if (! $booklet && ! $subject) {
             throw new \InvalidArgumentException('A booklet or a subject is required.');
         }
@@ -39,7 +44,7 @@ class AttemptService
 
         $subject ??= $booklet->subject;
 
-        $query = $this->questionPool($mode, $booklet, $subject, $mode === AttemptMode::Quiz ? $difficulty : null);
+        $query = $this->questionPool($mode, $booklet, $subject, $mode === AttemptMode::Quiz ? $difficulty : null, $topic);
 
         $questions = $mode === AttemptMode::Quiz
             ? $query->inRandomOrder()->limit($booklet?->quiz_question_count ?: config('booklit.default_quiz_size'))->get()
@@ -49,11 +54,12 @@ class AttemptService
             throw ValidationException::withMessages(['mode' => 'لا توجد أسئلة متاحة لهذا الاختيار حالياً.']);
         }
 
-        return DB::transaction(function () use ($user, $mode, $booklet, $subject, $difficulty, $questions) {
+        return DB::transaction(function () use ($user, $mode, $booklet, $subject, $difficulty, $questions, $topic) {
             $attempt = Attempt::create([
                 'user_id' => $user->getKey(),
                 'subject_id' => $subject->getKey(),
                 'booklet_id' => $booklet?->getKey(),
+                'topic_id' => $topic?->getKey(),
                 'mode' => $mode,
                 'difficulty' => $mode === AttemptMode::Quiz ? $difficulty : null,
                 'status' => AttemptStatus::InProgress,
@@ -158,11 +164,14 @@ class AttemptService
     /**
      * Questions eligible for an attempt / review.
      */
-    public function questionPool(AttemptMode $mode, ?Booklet $booklet, ?Subject $subject, ?Difficulty $difficulty = null): Builder
+    public function questionPool(AttemptMode $mode, ?Booklet $booklet, ?Subject $subject, ?Difficulty $difficulty = null, ?Topic $topic = null): Builder
     {
         $query = Question::query()->active()->with('options');
 
-        if ($booklet) {
+        if ($topic) {
+            // Reader quizzes: only the current topic's questions.
+            $query->where('topic_id', $topic->getKey());
+        } elseif ($booklet) {
             // Questions linked to the booklet itself or to any of its topics.
             $query->where('booklet_id', $booklet->getKey());
         } else {
@@ -179,6 +188,25 @@ class AttemptService
 
         // Questions with fewer than 2 options or no correct answer are not playable.
         return $query->whereHas('options', null, '>=', 2)->whereHas('correctOption');
+    }
+
+    /**
+     * Question counts behind a topic's quiz buttons.
+     *
+     * @return array{ministerial: int, teacher: int, quiz: array<string, int>}
+     */
+    public function topicStats(Topic $topic): array
+    {
+        $quiz = [];
+        foreach (Difficulty::cases() as $difficulty) {
+            $quiz[$difficulty->value] = $this->questionPool(AttemptMode::Quiz, null, null, $difficulty, $topic)->count();
+        }
+
+        return [
+            'ministerial' => $this->questionPool(AttemptMode::Ministerial, null, null, null, $topic)->count(),
+            'teacher' => $this->questionPool(AttemptMode::Teacher, null, null, null, $topic)->count(),
+            'quiz' => $quiz,
+        ];
     }
 
     /**

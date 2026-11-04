@@ -22,6 +22,6 @@ class DemoContentSeeder extends Seeder
             'role' => UserRole::Editor,
         ]);
 
-        $this->call([DentistryContentSeeder::class, DemoStudentsSeeder::class]);
+        $this->call([DentistryContentSeeder::class, DemoTablesSeeder::class, DemoStudentsSeeder::class, DemoReadingSeeder::class]);
     }
 }

@@ -15,7 +15,7 @@ class Attempt extends Model
     use HasFactory;
 
     protected $fillable = [
-        'user_id', 'subject_id', 'booklet_id', 'mode', 'difficulty', 'status',
+        'user_id', 'subject_id', 'booklet_id', 'topic_id', 'mode', 'difficulty', 'status',
         'total_questions', 'correct_count', 'score', 'started_at', 'submitted_at',
     ];
 
@@ -49,6 +49,11 @@ class Attempt extends Model
     public function booklet(): BelongsTo
     {
         return $this->belongsTo(Booklet::class);
+    }
+
+    public function topic(): BelongsTo
+    {
+        return $this->belongsTo(Topic::class);
     }
 
     public function answers(): HasMany

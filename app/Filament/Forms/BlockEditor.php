@@ -88,6 +88,17 @@ class BlockEditor
                         Toggle::make('display')->label('عرض في سطر مستقل')->default(true),
                     ]),
 
+                Block::make(BlockType::Table->value)
+                    ->label(BlockType::Table->getLabel())
+                    ->icon('heroicon-o-table-cells')
+                    ->schema([
+                        self::uuid(),
+                        Toggle::make('header')->label('الصف الأول عناوين')->default(true),
+                        Textarea::make('text')->label('محتوى الجدول')
+                            ->helperText('كل سطر صف، وافصل بين الخلايا بالرمز |  مثال: المصطلح | التعريف')
+                            ->rows(6)->required(),
+                    ]),
+
                 Block::make(BlockType::Quote->value)
                     ->label(BlockType::Quote->getLabel())
                     ->icon('heroicon-o-light-bulb')

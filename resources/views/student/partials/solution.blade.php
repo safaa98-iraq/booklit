@@ -28,15 +28,15 @@
             </div>
         @endforeach
         @if (! $review && $chosen === null)
-            <div class="small" style="color:var(--orange);margin-top:6px">لم تتم الإجابة</div>
+            <div class="small" style="color:var(--amber);margin-top:6px">لم تتم الإجابة</div>
         @endif
         @if ($question->explanation)
             <div class="explain"><strong>الشرح: </strong>{{ $question->explanation }}</div>
         @endif
         @if ($anchor && $anchor->block)
             <div style="text-align:end;margin-top:8px">
-                <a class="link-btn" href="{{ route('student.booklets.show', [$anchor->block->topic->booklet_id, 'hl' => $anchor->block->uuid.':'.$anchor->start_offset.':'.$anchor->end_offset]) }}#b-{{ $anchor->block->uuid }}">
-                    @include('student.partials.icon', ['name' => 'mark', 'size' => 16]) اعرض في الملزمة
+                <a class="link" href="{{ route('student.topics.show', [$anchor->block->topic_id, 'hl' => $anchor->block->uuid.':'.$anchor->start_offset.':'.$anchor->end_offset]) }}#b-{{ $anchor->block->uuid }}">
+                    @include('student.partials.icon', ['name' => 'highlight', 'size' => 16]) اعرض في الملزمة
                 </a>
             </div>
         @endif

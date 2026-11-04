@@ -29,6 +29,14 @@ class User extends Authenticatable implements FilamentUser, HasName
         'role',
         'is_active',
         'last_login_at',
+        'preferences',
+    ];
+
+    /** Student preferences and their defaults. */
+    public const PREFERENCE_DEFAULTS = [
+        'font_size' => 18,          // reader text size (px)
+        'notifications' => true,    // show notifications on the home page
+        'language' => 'ar',
     ];
 
     protected $hidden = [
@@ -44,6 +52,7 @@ class User extends Authenticatable implements FilamentUser, HasName
             'password' => 'hashed',
             'role' => UserRole::class,
             'is_active' => 'boolean',
+            'preferences' => 'array',
         ];
     }
 
@@ -96,6 +105,11 @@ class User extends Authenticatable implements FilamentUser, HasName
         return $this->assignedSubjects()->pluck('subjects.id')->all();
     }
 
+    public function preference(string $key): mixed
+    {
+        return ($this->preferences ?? [])[$key] ?? self::PREFERENCE_DEFAULTS[$key] ?? null;
+    }
+
     /* ------------------------------------------------------------- Relations */
 
     /** Subjects an editor is allowed to author content for. */
@@ -122,6 +136,21 @@ class User extends Authenticatable implements FilamentUser, HasName
     public function attempts(): HasMany
     {
         return $this->hasMany(Attempt::class);
+    }
+
+    public function topicProgress(): HasMany
+    {
+        return $this->hasMany(TopicProgress::class);
+    }
+
+    public function favorites(): HasMany
+    {
+        return $this->hasMany(Favorite::class);
+    }
+
+    public function highlights(): HasMany
+    {
+        return $this->hasMany(UserHighlight::class);
     }
 
     /* ---------------------------------------------------------------- Scopes */
