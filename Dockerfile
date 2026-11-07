@@ -2,15 +2,14 @@
 FROM php:8.3-apache
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
-        libpq-dev libicu-dev libzip-dev libpng-dev libjpeg62-turbo-dev libfreetype6-dev unzip git \
-    && docker-php-ext-configure gd --with-freetype --with-jpeg \
-    && docker-php-ext-install -j"$(nproc)" pdo_pgsql pdo_mysql intl zip gd exif bcmath opcache \
+        libpq-dev libicu-dev libzip-dev unzip git \
+    && docker-php-ext-install -j"$(nproc)" pdo_pgsql pdo_mysql intl zip bcmath opcache \
     && a2enmod rewrite headers \
     && rm -rf /var/lib/apt/lists/*
 
 COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 COPY docker/apache.conf /etc/apache2/sites-available/000-default.conf
-COPY docker/php.ini /usr/local/etc/php/conf.d/booklit.ini
+COPY docker/php.ini /usr/local/etc/php/conf.d/kakeibo.ini
 
 WORKDIR /var/www/html
 
