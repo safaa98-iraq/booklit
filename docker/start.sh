@@ -10,7 +10,7 @@ esac
 
 php artisan migrate --force
 
-# Optional demo notebook (demo@kakeibo.test / password). Idempotent.
+# Optional demo entries for the owner. Idempotent.
 if [ "$SEED_DEMO" = "true" ]; then
   php artisan db:seed --force
 fi

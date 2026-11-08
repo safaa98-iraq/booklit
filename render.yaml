@@ -25,7 +25,7 @@ services:
         value: database
       - key: CACHE_STORE
         value: database
-      - key: SEED_DEMO         # "true" creates demo@kakeibo.test / password
+      - key: SEED_DEMO         # "true" adds demo entries
         value: "false"
 
 databases:

@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Middleware\UseOwner;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
@@ -14,8 +15,8 @@ return Application::configure(basePath: dirname(__DIR__))
         // Render / load balancers terminate TLS: trust X-Forwarded-* so URLs are https.
         $middleware->trustProxies(at: '*');
 
-        $middleware->redirectGuestsTo(fn () => route('login'));
-        $middleware->redirectUsersTo(fn () => route('home'));
+        // Personal notebook: no login, every page belongs to the owner.
+        $middleware->web(append: [UseOwner::class]);
     })
     ->withExceptions(function (Exceptions $exceptions) {
         //

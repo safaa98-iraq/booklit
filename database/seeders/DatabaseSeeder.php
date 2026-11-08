@@ -7,15 +7,16 @@ use App\Models\User;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Carbon;
 
-/** Demo notebook: demo@kakeibo.test / password, with this month's plan and some entries. */
+/** Demo notebook for the owner: this month's plan and some entries. */
 class DatabaseSeeder extends Seeder
 {
     public function run(): void
     {
-        $user = User::firstOrCreate(
-            ['email' => 'demo@kakeibo.test'],
-            ['name' => 'سارة', 'password' => 'password', 'currency' => 'د.ع'],
-        );
+        $user = User::query()->oldest('id')->first() ?? User::create([
+            'name' => 'صاحب الدفتر',
+            'email' => 'owner@kakeibo.local',
+            'password' => \Illuminate\Support\Str::random(40),
+        ]);
 
         if ($user->entries()->exists()) {
             return;

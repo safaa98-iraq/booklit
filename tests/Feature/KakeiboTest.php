@@ -11,10 +11,27 @@ class KakeiboTest extends TestCase
 {
     use RefreshDatabase;
 
+    /** The owner is the first user in the database. */
+    private function owner(): User
+    {
+        return User::query()->oldest('id')->first() ?? User::factory()->create();
+    }
+
+    public function test_opens_without_login_and_creates_the_owner(): void
+    {
+        $this->assertDatabaseCount('users', 0);
+
+        $this->get('/')->assertRedirect('/months/'.now()->format('Y-m'));
+        $this->get('/months/'.now()->format('Y-m'))->assertOk()->assertSee('دفتر كاكيبو');
+
+        $this->assertDatabaseCount('users', 1);
+        $this->get('/login')->assertNotFound();
+        $this->get('/register')->assertNotFound();
+    }
+
     public function test_month_page_renders_without_a_plan(): void
     {
-        $this->actingAs(User::factory()->create())
-            ->get('/months/2026-11')
+        $this->get('/months/2026-11')
             ->assertOk()
             ->assertSee('تشرين الثاني')
             ->assertSee('لم تُكتب بعد');
@@ -22,21 +39,19 @@ class KakeiboTest extends TestCase
 
     public function test_invalid_month_is_404(): void
     {
-        $this->actingAs(User::factory()->create())->get('/months/2026-13')->assertNotFound();
+        $this->get('/months/2026-13')->assertNotFound();
     }
 
     public function test_plan_and_reflection_are_saved(): void
     {
-        $user = User::factory()->create();
-
-        $this->actingAs($user)->put('/months/2026-11/plan', [
+        $this->put('/months/2026-11/plan', [
             'income' => 1000000, 'fixed_costs' => 300000, 'savings_goal' => 200000, 'intention' => 'هدوء',
         ])->assertRedirect('/months/2026-11');
 
         $this->put('/months/2026-11/reflection', ['reflection' => 'جيد', 'improvement' => 'أقل مطاعم'])
             ->assertRedirect();
 
-        $month = $user->months()->sole();
+        $month = $this->owner()->months()->sole();
         $this->assertSame(500000.0, $month->available());
         $this->assertSame('أقل مطاعم', $month->improvement);
 
@@ -45,13 +60,11 @@ class KakeiboTest extends TestCase
 
     public function test_entries_can_be_added_edited_and_deleted(): void
     {
-        $user = User::factory()->create();
-
-        $this->actingAs($user)->post('/entries', [
+        $this->post('/entries', [
             'spent_on' => '2026-11-03', 'category' => 'wants', 'description' => 'شاي ماتشا', 'amount' => 7500,
         ])->assertRedirect('/months/2026-11');
 
-        $entry = $user->entries()->sole();
+        $entry = $this->owner()->entries()->sole();
         $this->get('/months/2026-11')->assertSee('شاي ماتشا')->assertSee('7,500');
         $this->get('/months/2026-11?category=needs')->assertDontSee('شاي ماتشا');
 
@@ -66,17 +79,15 @@ class KakeiboTest extends TestCase
 
     public function test_entry_validation(): void
     {
-        $this->actingAs(User::factory()->create())
-            ->post('/entries', ['spent_on' => 'x', 'category' => 'luxury', 'description' => '', 'amount' => -5])
+        $this->post('/entries', ['spent_on' => 'x', 'category' => 'luxury', 'description' => '', 'amount' => -5])
             ->assertSessionHasErrors(['spent_on', 'category', 'description', 'amount']);
     }
 
     public function test_comments_can_be_added_and_deleted(): void
     {
-        $user = User::factory()->create();
-        $entry = Entry::factory()->for($user)->create();
+        $entry = Entry::factory()->for($this->owner())->create();
 
-        $this->actingAs($user)->post("/entries/{$entry->id}/comments", ['body' => 'هل كان ضرورياً؟'])->assertRedirect();
+        $this->post("/entries/{$entry->id}/comments", ['body' => 'هل كان ضرورياً؟'])->assertRedirect();
         $comment = $entry->comments()->sole();
 
         $this->get("/entries/{$entry->id}")->assertOk()->assertSee('هل كان ضرورياً؟');
@@ -85,43 +96,24 @@ class KakeiboTest extends TestCase
         $this->assertDatabaseCount('comments', 0);
     }
 
-    public function test_users_cannot_touch_each_others_notebooks(): void
+    public function test_entries_of_other_users_stay_hidden(): void
     {
-        $owner = User::factory()->create();
-        $entry = Entry::factory()->for($owner)->create(['description' => 'سرّي']);
-        $comment = $entry->comments()->make(['body' => 'خاص']);
-        $comment->user()->associate($owner)->save();
-
-        $other = User::factory()->create();
-        $this->actingAs($other);
+        $this->owner();
+        $stranger = User::factory()->create();
+        $entry = Entry::factory()->for($stranger)->create(['description' => 'سرّي']);
 
         $this->get("/entries/{$entry->id}")->assertForbidden();
         $this->delete("/entries/{$entry->id}")->assertForbidden();
-        $this->post("/entries/{$entry->id}/comments", ['body' => 'x'])->assertForbidden();
-        $this->delete("/comments/{$comment->id}")->assertForbidden();
         $this->get('/months/'.$entry->spent_on->format('Y-m'))->assertDontSee('سرّي');
     }
 
     public function test_year_view_and_settings(): void
     {
-        $user = User::factory()->create();
-        Entry::factory()->for($user)->create(['spent_on' => '2026-03-10', 'amount' => 12000]);
+        Entry::factory()->for($this->owner())->create(['spent_on' => '2026-03-10', 'amount' => 12000]);
 
-        $this->actingAs($user)->get('/months?year=2026')->assertOk()->assertSee('آذار')->assertSee('12,000');
+        $this->get('/months?year=2026')->assertOk()->assertSee('آذار')->assertSee('12,000');
 
-        $this->put('/settings', ['name' => 'يوكي', 'email' => $user->email, 'currency' => '¥'])->assertRedirect();
-        $this->assertSame('¥', $user->fresh()->currency);
-    }
-
-    public function test_account_deletion_requires_password(): void
-    {
-        $user = User::factory()->create();
-        Entry::factory()->for($user)->create();
-
-        $this->actingAs($user)->delete('/settings/account', ['password' => 'nope'])->assertSessionHasErrors('password');
-        $this->delete('/settings/account', ['password' => 'password'])->assertRedirect('/login');
-
-        $this->assertDatabaseCount('users', 0);
-        $this->assertDatabaseCount('entries', 0);
+        $this->put('/settings', ['name' => 'يوكي', 'currency' => '¥'])->assertRedirect();
+        $this->assertSame('¥', $this->owner()->fresh()->currency);
     }
 }
