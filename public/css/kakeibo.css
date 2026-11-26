@@ -745,6 +745,53 @@ body.is-auth .page { justify-content: center; }
     .row__left { font-size: .7rem; }
 }
 
+/* ───────── Saving: drafts, backups, offline ───────── */
+
+.draft-note {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 6px 12px;
+    padding: 8px 12px;
+    border-radius: 12px;
+    background: var(--kincha-soft);
+    color: var(--sumi);
+    font-size: .88rem;
+}
+.draft-note button { border: 0; background: none; color: var(--ai); font: inherit; cursor: pointer; padding: 4px 6px; }
+.draft-note + * { margin-top: 0; }
+.form--grid > .draft-note { grid-column: 1 / -1; }
+
+.backup-nudge {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 8px 8px 16px;
+    padding-inline-start: 16px;
+    border-radius: 16px;
+    background: var(--ai-soft);
+    font-size: .92rem;
+}
+.backup-nudge[hidden] { display: none; }
+.backup-nudge span { flex: 1; }
+.backup-nudge a { color: var(--ai); font-weight: 600; white-space: nowrap; }
+
+.backup__lead { margin-bottom: 16px; }
+.backup__actions { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 20px; }
+.backup__actions .btn { text-decoration: none; }
+.backup__restore { padding-top: 16px; border-top: 1px dashed var(--line); }
+.backup__restore input[type=file] { padding: 8px; background: var(--washi); }
+
+.offline { justify-content: center; min-height: 100vh; }
+.offline__card { display: flex; flex-direction: column; align-items: center; gap: 14px; text-align: center; padding: 32px 24px; }
+.offline__card img { border-radius: 24px; }
+.offline__card .btn { align-self: center; }
+
+/* ───────── Phone tab bar (hidden on wide screens) ───────── */
+
+.tabbar { display: none; }
+
 /* ───────── Small screens ───────── */
 
 @media (max-width: 860px) {
@@ -784,3 +831,76 @@ body.is-auth .page { justify-content: center; }
 .amount-field input[type=number] { -moz-appearance: textfield; appearance: textfield; }
 .amount-field input[type=number]::-webkit-inner-spin-button,
 .amount-field input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+
+/* ───────── Phone: app-like layout ───────── */
+
+@media (max-width: 700px) {
+    html { scroll-padding-top: 70px; }
+    body { padding-bottom: calc(72px + env(safe-area-inset-bottom)); -webkit-tap-highlight-color: transparent; }
+
+    .topbar { padding-top: env(safe-area-inset-top); }
+    .topbar .nav { display: none; }
+    .brand__text small { display: inline; }
+
+    .tabbar {
+        position: fixed;
+        inset: auto 0 0 0;
+        z-index: 40;
+        display: grid;
+        grid-template-columns: repeat(5, 1fr);
+        align-items: end;
+        padding: 6px 6px calc(6px + env(safe-area-inset-bottom));
+        background: rgba(255, 255, 255, .92);
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+        border-top: 1px solid var(--line);
+        box-shadow: 0 -10px 30px -20px rgba(150, 110, 170, .5);
+    }
+    .tabbar__item {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 2px;
+        min-height: 52px;
+        padding: 6px 2px 2px;
+        border: 0;
+        border-radius: 14px;
+        background: none;
+        color: var(--sumi-soft);
+        font: inherit;
+        font-size: .72rem;
+        text-decoration: none;
+        cursor: pointer;
+    }
+    .tabbar__icon { font-size: 1.15rem; line-height: 1.3; }
+    .tabbar__item.is-active { color: var(--beni); background: var(--beni-soft); }
+    .tabbar__add {
+        justify-self: center;
+        display: grid;
+        place-items: center;
+        width: 58px;
+        height: 58px;
+        margin-top: -22px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, #ea86a6, #a48ce6);
+        color: #fff;
+        font-size: 1.8rem;
+        text-decoration: none;
+        box-shadow: 0 10px 22px -8px rgba(164, 110, 200, .9), 0 0 0 5px #fff;
+    }
+    .tabbar__add:active { transform: scale(.95); }
+
+    /* The calculator lives in the tab bar on phones. */
+    .calc-fab { display: none; }
+    .calc { bottom: calc(80px + env(safe-area-inset-bottom)); }
+    .footer__proverb { padding-bottom: 24px; }
+
+    /* Comfortable typing: 16px stops iPhone from zooming into fields. */
+    .field input:not([type=radio]):not([type=checkbox]), .field textarea { font-size: 16px; padding: 11px 12px; }
+    .btn { min-height: 46px; padding: 10px 22px; }
+    #add .btn, .comment-form .btn, .entry__edit .btn--ink { align-self: stretch; }
+    .icon-btn { width: 40px; height: 40px; }
+    .chip span { padding: 8px 14px; }
+    .month-head__nav { width: 46px; height: 46px; }
+    .row { padding: 10px 4px; }
+}

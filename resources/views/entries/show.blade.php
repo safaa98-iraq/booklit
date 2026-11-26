@@ -24,7 +24,7 @@
             @if ($errors->hasAny(['spent_on', 'category', 'description', 'amount', 'note']))
                 @include('partials.errors')
             @endif
-            <form method="POST" action="{{ route('entries.update', $entry) }}" class="form">
+            <form method="POST" action="{{ route('entries.update', $entry) }}" class="form" data-draft="entry-{{ $entry->id }}">
                 @csrf @method('PUT')
                 <label class="field">
                     <span>الوصف</span>
@@ -91,7 +91,7 @@
         @if ($errors->has('body'))
             @include('partials.errors')
         @endif
-        <form method="POST" action="{{ route('comments.store', $entry) }}" class="form comment-form">
+        <form method="POST" action="{{ route('comments.store', $entry) }}" class="form comment-form" data-draft="comment-{{ $entry->id }}">
             @csrf
             <label class="field">
                 <span class="sr-only">تعليق جديد</span>

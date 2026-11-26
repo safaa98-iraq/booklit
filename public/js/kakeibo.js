@@ -186,3 +186,125 @@
         }
     });
 })();
+
+/* ───────── Drafts: whatever you type is kept on this phone until it is saved ───────── */
+(function () {
+    'use strict';
+
+    var store = {
+        get: function (k) { try { return JSON.parse(localStorage.getItem(k)); } catch (e) { return null; } },
+        set: function (k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} },
+        del: function (k) { try { localStorage.removeItem(k); } catch (e) {} }
+    };
+    var session = {
+        get: function (k) { try { return JSON.parse(sessionStorage.getItem(k)); } catch (e) { return null; } },
+        set: function (k, v) { try { sessionStorage.setItem(k, JSON.stringify(v)); } catch (e) {} }
+    };
+
+    var PREFIX = 'kakeibo:draft:';
+    var saved = document.querySelector('.toast');                 // the server confirmed a save
+    var submitted = session.get('kakeibo:submitted') || [];
+    if (saved) { submitted.forEach(function (k) { store.del(PREFIX + k); }); }
+    session.set('kakeibo:submitted', []);
+
+    function fields(form) {
+        return Array.prototype.filter.call(form.elements, function (el) {
+            return el.name && el.name.charAt(0) !== '_' && el.type !== 'file' && el.type !== 'hidden'
+                && el.type !== 'submit' && el.type !== 'button';
+        });
+    }
+
+    function snapshot(form) {
+        var data = {};
+        fields(form).forEach(function (el) {
+            if (el.type === 'radio' || el.type === 'checkbox') { if (el.checked) data[el.name] = el.value; }
+            else data[el.name] = el.value;
+        });
+        return data;
+    }
+
+    function isWorthKeeping(form, data) {
+        // Only text the person actually typed counts (not the default date or category).
+        return fields(form).some(function (el) {
+            return (el.tagName === 'TEXTAREA' || /^(text|number|search)$/.test(el.type)) && data[el.name] && data[el.name] !== el.defaultValue;
+        });
+    }
+
+    document.querySelectorAll('form[data-draft]').forEach(function (form) {
+        var key = PREFIX + form.dataset.draft;
+        var draft = store.get(key);
+        var hasErrors = form.closest('.card') && form.closest('.card').querySelector('.alert');
+
+        if (draft && draft.data && !hasErrors) {
+            fields(form).forEach(function (el) {
+                if (!(el.name in draft.data)) return;
+                if (el.type === 'radio' || el.type === 'checkbox') el.checked = el.value === draft.data[el.name];
+                else el.value = draft.data[el.name];
+            });
+            var note = document.createElement('p');
+            note.className = 'draft-note';
+            note.innerHTML = '<span>✎ أُعيدت مسودتك التي لم تُحفظ بعد.</span> <button type="button">تجاهلها</button>';
+            note.querySelector('button').addEventListener('click', function () {
+                store.del(key); form.reset(); note.remove();
+                form.querySelectorAll('[data-amount]').forEach(function (i) { i.dispatchEvent(new Event('input', { bubbles: true })); });
+            });
+            form.insertBefore(note, form.firstChild);
+            form.querySelectorAll('[data-amount]').forEach(function (i) { i.dispatchEvent(new Event('input', { bubbles: true })); });
+            var details = form.closest('details');
+            if (details) details.open = true;
+        }
+
+        var timer;
+        var save = function () {
+            clearTimeout(timer);
+            timer = setTimeout(function () {
+                var data = snapshot(form);
+                if (isWorthKeeping(form, data)) store.set(key, { at: Date.now(), data: data });
+                else store.del(key);
+            }, 250);
+        };
+        form.addEventListener('input', save);
+        form.addEventListener('change', save);
+        form.addEventListener('submit', function (e) {
+            if (e.defaultPrevented) return;
+            var list = session.get('kakeibo:submitted') || [];
+            list.push(form.dataset.draft);
+            session.set('kakeibo:submitted', list);
+        });
+    });
+
+    /* ───────── Gentle weekly backup reminder ───────── */
+
+    var now = Date.now(), WEEK = 7 * 864e5;
+    var since = store.get('kakeibo:lastBackup') || store.get('kakeibo:firstSeen');
+    if (!since) store.set('kakeibo:firstSeen', now);
+    var nudge = document.querySelector('[data-backup-nudge]');
+    var snoozed = store.get('kakeibo:backupSnooze');
+    if (nudge && since && now - since > WEEK && !(snoozed && now < snoozed)) nudge.hidden = false;
+
+    document.addEventListener('click', function (e) {
+        if (e.target.closest('[data-backup-link], a[href$="/backup"]')) {
+            store.set('kakeibo:lastBackup', Date.now());
+            if (nudge) nudge.hidden = true;
+        }
+        if (e.target.closest('[data-backup-dismiss]')) {
+            store.set('kakeibo:backupSnooze', Date.now() + 3 * 864e5);
+            nudge.hidden = true;
+        }
+    });
+
+    /* ───────── ＋ in the tab bar: straight to the expense form ───────── */
+
+    function focusAdd() {
+        var add = document.getElementById('add');
+        if (!add) return;
+        add.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        var input = add.querySelector('input[name="description"]');
+        if (input) setTimeout(function () { input.focus({ preventScroll: true }); }, 350);
+    }
+    if (location.hash === '#add') focusAdd();
+    document.addEventListener('click', function (e) {
+        var go = e.target.closest('[data-go-add]');
+        if (go && document.getElementById('add')) { e.preventDefault(); history.replaceState(null, '', '#add'); focusAdd(); }
+    });
+})();

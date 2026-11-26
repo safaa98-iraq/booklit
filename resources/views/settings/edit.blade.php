@@ -20,4 +20,27 @@
             <button class="btn btn--ink" type="submit">حفظ</button>
         </form>
     </section>
+
+    <section class="card narrow" id="backup">
+        <h2 class="section-title"><span lang="ja">保存</span> حفظ بياناتك</h2>
+        <p class="muted backup__lead">بياناتك محفوظة في قاعدة البيانات على الخادم. نزّل نسخة احتياطية بين حين وآخر واحتفظ بها في هاتفك أو في Google Drive، لتستعيد دفترك كاملاً متى احتجت.</p>
+
+        <div class="backup__actions">
+            <a class="btn btn--ink" href="{{ route('backup.download') }}" download>⬇ تنزيل نسخة احتياطية</a>
+            <a class="btn btn--ghost" href="{{ route('backup.csv') }}" download>جدول Excel للمصاريف</a>
+        </div>
+
+        @if ($errors->has('backup'))
+            @include('partials.errors')
+        @endif
+        <form method="POST" action="{{ route('backup.restore') }}" enctype="multipart/form-data" class="form backup__restore"
+              data-confirm="الاستعادة تستبدل كل ما في الدفتر الآن بمحتوى الملف. متابعة؟">
+            @csrf
+            <label class="field">
+                <span>استعادة من نسخة احتياطية <small>(ملف ‎.json‎)</small></span>
+                <input type="file" name="backup" accept=".json,application/json" required>
+            </label>
+            <button class="btn btn--ghost" type="submit">استعادة</button>
+        </form>
+    </section>
 @endsection

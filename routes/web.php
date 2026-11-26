@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\BackupController;
 use App\Http\Controllers\CommentController;
 use App\Http\Controllers\EntryController;
 use App\Http\Controllers\MonthController;
@@ -24,3 +25,7 @@ Route::delete('/comments/{comment}', [CommentController::class, 'destroy'])->nam
 
 Route::get('/settings', [SettingsController::class, 'edit'])->name('settings');
 Route::put('/settings', [SettingsController::class, 'update'])->name('settings.update');
+
+Route::get('/backup', [BackupController::class, 'download'])->name('backup.download');
+Route::get('/backup/csv', [BackupController::class, 'csv'])->name('backup.csv');
+Route::post('/backup/restore', [BackupController::class, 'restore'])->name('backup.restore');

@@ -40,7 +40,7 @@
             <span>خطة الشهر</span>
             @unless ($month->exists)<em class="badge">لم تُكتب بعد</em>@endunless
         </summary>
-        <form method="POST" action="{{ route('months.plan', $month->key()) }}" class="form form--grid">
+        <form method="POST" action="{{ route('months.plan', $month->key()) }}" class="form form--grid" data-draft="plan-{{ $month->key() }}">
             @csrf @method('PUT')
             <label class="field">
                 <span>كم لديك من المال؟ <small>(الدخل)</small></span>
@@ -93,7 +93,7 @@
             @if ($errors->hasAny(['spent_on', 'category', 'description', 'amount', 'note']))
                 @include('partials.errors')
             @endif
-            <form method="POST" action="{{ route('entries.store') }}" class="form">
+            <form method="POST" action="{{ route('entries.store') }}" class="form" data-draft="new-entry">
                 @csrf
                 <label class="field">
                     <span>الوصف</span>
@@ -252,7 +252,7 @@
                 <strong @class(['is-good' => $month->exists && $saved >= (float) $month->savings_goal, 'is-over' => $saved < 0])>{{ money($saved) }}</strong>
             </li>
         </ol>
-        <form method="POST" action="{{ route('months.reflection', $month->key()) }}" class="form">
+        <form method="POST" action="{{ route('months.reflection', $month->key()) }}" class="form" data-draft="reflection-{{ $month->key() }}">
             @csrf @method('PUT')
             <label class="field">
                 <span>كيف مضى الشهر؟</span>
