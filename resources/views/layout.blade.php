@@ -9,7 +9,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Naskh+Arabic:wght@400;500;600;700&family=Noto+Serif+JP:wght@400;600&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="{{ asset('css/kakeibo.css') }}?v=5">
+    <link rel="stylesheet" href="{{ asset('css/kakeibo.css') }}?v=7">
 </head>
 <body class="@yield('body-class')">
     {{-- Brush texture shared by every ensō on the page --}}
@@ -50,6 +50,8 @@
         @yield('content')
     </main>
 
+    @include('partials.calculator')
+
     <footer class="footer">
         <div class="seigaiha" aria-hidden="true"></div>
         <p class="footer__proverb">
@@ -58,6 +60,7 @@
         </p>
     </footer>
 
+    <script src="{{ asset('js/kakeibo.js') }}?v=2" defer></script>
     <script>
         // Ask before deleting anything.
         document.addEventListener('submit', function (e) {

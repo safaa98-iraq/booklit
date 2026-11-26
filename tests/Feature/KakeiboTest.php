@@ -116,4 +116,34 @@ class KakeiboTest extends TestCase
         $this->put('/settings', ['name' => 'يوكي', 'currency' => '¥'])->assertRedirect();
         $this->assertSame('¥', $this->owner()->fresh()->currency);
     }
+
+    public function test_remaining_is_shown_after_every_entry(): void
+    {
+        $this->put('/months/2026-11/plan', ['income' => 1000000, 'fixed_costs' => 300000, 'savings_goal' => 200000]);
+
+        // Available: 500,000. Each entry shows what is left right after it, in date order.
+        $this->post('/entries', ['spent_on' => '2026-11-02', 'category' => 'needs', 'description' => 'خبز', 'amount' => 50000])
+            ->assertSessionHas('status', fn ($s) => str_contains($s, '450,000'));
+        $this->post('/entries', ['spent_on' => '2026-11-05', 'category' => 'wants', 'description' => 'سينما', 'amount' => 100000])
+            ->assertSessionHas('status', fn ($s) => str_contains($s, '350,000'));
+        // Added later but dated earlier: it slots in before the others.
+        $this->post('/entries', ['spent_on' => '2026-11-01', 'category' => 'culture', 'description' => 'كتاب', 'amount' => 20000])
+            ->assertSessionHas('status', fn ($s) => str_contains($s, '330,000'));
+
+        $this->get('/months/2026-11')
+            ->assertSeeInOrder(['سينما', 'يبقى 330,000', 'خبز', 'يبقى 430,000', 'كتاب', 'يبقى 480,000'])
+            ->assertSee('data-remaining="330000"', false);
+
+        // Over budget is flagged.
+        $this->post('/entries', ['spent_on' => '2026-11-20', 'category' => 'unexpected', 'description' => 'تصليح', 'amount' => 400000])
+            ->assertSessionHas('status', fn ($s) => str_contains($s, 'تجاوزت') && str_contains($s, '70,000'));
+        $this->get('/months/2026-11')->assertSee('تجاوز 70,000');
+    }
+
+    public function test_without_a_plan_the_note_asks_for_one(): void
+    {
+        $this->post('/entries', ['spent_on' => '2026-11-02', 'category' => 'needs', 'description' => 'خبز', 'amount' => 5000])
+            ->assertSessionHas('status', fn ($s) => str_contains($s, 'اكتب خطة'));
+        $this->get('/months/2026-11')->assertDontSee('يبقى')->assertSee('data-calc', false);
+    }
 }

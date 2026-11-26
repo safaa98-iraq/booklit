@@ -79,6 +79,15 @@ class MonthController extends Controller
 
         $spent = (float) $all->sum('amount');
         $available = $month->available();
+
+        // What is left of the month's budget right after each entry, in the order they happened.
+        $left = $available;
+        $balanceAfter = $all->sortBy([['spent_on', 'asc'], ['id', 'asc']])
+            ->mapWithKeys(function (Entry $e) use (&$left) {
+                $left -= (float) $e->amount;
+
+                return [$e->id => $left];
+            });
         $start = $month->start();
         $today = Carbon::today();
 
@@ -94,6 +103,8 @@ class MonthController extends Controller
             'spent' => $spent,
             'available' => $available,
             'remaining' => $available - $spent,
+            'balanceAfter' => $balanceAfter,
+            'hasPlan' => $month->exists,
             'usage' => $available > 0 ? min(100, round($spent / $available * 100)) : ($spent > 0 ? 100 : 0),
             'prev' => $start->copy()->subMonth()->format('Y-m'),
             'next' => $start->copy()->addMonth()->format('Y-m'),

@@ -33,7 +33,10 @@
                 <div class="form__row">
                     <label class="field">
                         <span>المبلغ</span>
-                        <input type="number" name="amount" min="0" step="any" inputmode="decimal" required value="{{ old('amount', (float) $entry->amount) }}">
+                        <span class="amount-field">
+                            <input type="number" name="amount" min="0" step="any" inputmode="decimal" required value="{{ old('amount', (float) $entry->amount) }}" data-amount>
+                            <button type="button" class="calc-trigger" data-calc-open aria-label="افتح الحاسبة" title="الحاسبة">🧮</button>
+                        </span>
                     </label>
                     <label class="field">
                         <span>التاريخ</span>

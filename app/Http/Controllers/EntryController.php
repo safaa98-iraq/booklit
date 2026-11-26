@@ -13,9 +13,10 @@ class EntryController extends Controller
     public function store(Request $request): RedirectResponse
     {
         $entry = $request->user()->entries()->create($this->validated($request));
+        $ym = $entry->spent_on->format('Y-m');
 
-        return redirect()->route('months.show', $entry->spent_on->format('Y-m'))
-            ->with('status', 'دُوِّن المصروف في الدفتر.');
+        return redirect()->route('months.show', $ym)
+            ->with('status', 'دُوِّن المصروف في الدفتر. '.$this->remainingNote($request, $ym));
     }
 
     public function show(Request $request, Entry $entry): View
@@ -35,7 +36,8 @@ class EntryController extends Controller
         $this->ensureOwner($request, $entry);
         $entry->update($this->validated($request));
 
-        return redirect()->route('entries.show', $entry)->with('status', 'عُدِّل المصروف.');
+        return redirect()->route('entries.show', $entry)
+            ->with('status', 'عُدِّل المصروف. '.$this->remainingNote($request, $entry->spent_on->format('Y-m')));
     }
 
     public function destroy(Request $request, Entry $entry): RedirectResponse
@@ -44,7 +46,25 @@ class EntryController extends Controller
         $ym = $entry->spent_on->format('Y-m');
         $entry->delete();
 
-        return redirect()->route('months.show', $ym)->with('status', 'حُذف المصروف.');
+        return redirect()->route('months.show', $ym)
+            ->with('status', 'حُذف المصروف. '.$this->remainingNote($request, $ym));
+    }
+
+    /** "المتبقي من ميزانية تشرين الثاني: 580,000 د.ع" — or a nudge to write the plan first. */
+    private function remainingNote(Request $request, string $ym): string
+    {
+        $month = $this->monthFor($request, $ym);
+        $name = Calendar::monthName($month->month);
+
+        if (! $month->exists) {
+            return "اكتب خطة {$name} ليُحسب المتبقي.";
+        }
+
+        $left = $month->available() - (float) $month->entries()->sum('amount');
+
+        return $left >= 0
+            ? "المتبقي من ميزانية {$name}: ".money($left)
+            : "تجاوزت ميزانية {$name} بـ ".money(abs($left));
     }
 
     private function validated(Request $request): array

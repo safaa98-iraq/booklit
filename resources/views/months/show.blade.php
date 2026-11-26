@@ -102,7 +102,10 @@
                 <div class="form__row">
                     <label class="field">
                         <span>المبلغ</span>
-                        <input type="number" name="amount" min="0" step="any" inputmode="decimal" required value="{{ old('amount') }}">
+                        <span class="amount-field">
+                            <input type="number" name="amount" min="0" step="any" inputmode="decimal" required value="{{ old('amount') }}" data-amount>
+                            <button type="button" class="calc-trigger" data-calc-open aria-label="افتح الحاسبة" title="الحاسبة">🧮</button>
+                        </span>
                     </label>
                     <label class="field">
                         <span>التاريخ</span>
@@ -125,6 +128,15 @@
                     <span>ملاحظة <small>(اختياري)</small></span>
                     <textarea name="note" rows="2" maxlength="2000">{{ old('note') }}</textarea>
                 </label>
+                <div class="preview" data-preview data-remaining="{{ $remaining }}" data-has-plan="{{ $hasPlan ? 1 : 0 }}" data-currency="{{ auth()->user()->currency }}" aria-live="polite">
+                    @if ($hasPlan)
+                        <span>المتبقي الآن</span><strong data-preview-now>{{ money($remaining) }}</strong>
+                        <span class="preview__arrow" aria-hidden="true">←</span>
+                        <span>بعد هذا المصروف</span><strong data-preview-after>{{ money($remaining) }}</strong>
+                    @else
+                        <span>اكتب خطة الشهر في الأعلى ليُحسب المتبقي بعد كل مصروف.</span>
+                    @endif
+                </div>
                 <button class="btn btn--ink" type="submit">دوِّن</button>
             </form>
         </section>
@@ -202,7 +214,15 @@
                             @if ($entry->comments_count)
                                 <a class="row__comments" href="{{ route('entries.show', $entry) }}#comments" title="التعليقات">✎ {{ $entry->comments_count }}</a>
                             @endif
-                            <span class="row__amount">{{ money($entry->amount, false) }}</span>
+                            <span class="row__money">
+                                <span class="row__amount">{{ money($entry->amount, false) }}</span>
+                                @if ($hasPlan)
+                                    @php $after = $balanceAfter[$entry->id]; @endphp
+                                    <small @class(['row__left', 'is-over' => $after < 0]) title="المتبقي من الميزانية بعد هذا المصروف">
+                                        {{ $after >= 0 ? 'يبقى' : 'تجاوز' }} {{ money(abs($after), false) }}
+                                    </small>
+                                @endif
+                            </span>
                             <form method="POST" action="{{ route('entries.destroy', $entry) }}" data-confirm="حذف «{{ $entry->description }}»؟">
                                 @csrf @method('DELETE')
                                 <button type="submit" class="icon-btn" aria-label="حذف {{ $entry->description }}">×</button>
